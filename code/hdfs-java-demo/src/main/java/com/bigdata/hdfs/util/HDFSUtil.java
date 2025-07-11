@@ -22,6 +22,7 @@ public class HDFSUtil {
     
     private FileSystem fileSystem;
     private Configuration configuration;
+    private short replicationFactor = 3; // 默认副本数为3
     
     /**
      * 构造函数，初始化HDFS连接
@@ -30,8 +31,23 @@ public class HDFSUtil {
      * @throws Exception 初始化异常
      */
     public HDFSUtil(String hdfsUri) throws Exception {
+        this(hdfsUri, (short) 3); // 默认副本数为3
+    }
+    
+    /**
+     * 构造函数，初始化HDFS连接并设置副本数
+     * 
+     * @param hdfsUri HDFS地址，例如：hdfs://10.132.144.24:9000
+     * @param replicationFactor 副本数
+     * @throws Exception 初始化异常
+     */
+    public HDFSUtil(String hdfsUri, short replicationFactor) throws Exception {
         this.configuration = new Configuration();
         this.configuration.set("fs.defaultFS", hdfsUri);
+        this.replicationFactor = replicationFactor;
+        
+        // 设置默认副本数
+        this.configuration.setInt("dfs.replication", replicationFactor);
         
         // 设置用户名，避免权限问题
         System.setProperty("HADOOP_USER_NAME", "hadoop");
@@ -39,7 +55,7 @@ public class HDFSUtil {
         // 获取文件系统实例
         this.fileSystem = FileSystem.get(URI.create(hdfsUri), configuration);
         
-        logger.info("HDFS连接初始化成功: {}", hdfsUri);
+        logger.info("HDFS连接初始化成功: {}, 副本数: {}", hdfsUri, replicationFactor);
     }
     
     /**
@@ -77,6 +93,18 @@ public class HDFSUtil {
      * @return 上传成功返回true，否则返回false
      */
     public boolean uploadFile(String localFilePath, String hdfsFilePath) {
+        return uploadFile(localFilePath, hdfsFilePath, this.replicationFactor);
+    }
+    
+    /**
+     * 上传本地文件到HDFS并指定副本数
+     * 
+     * @param localFilePath 本地文件路径
+     * @param hdfsFilePath HDFS文件路径
+     * @param replicationFactor 副本数
+     * @return 上传成功返回true，否则返回false
+     */
+    public boolean uploadFile(String localFilePath, String hdfsFilePath, short replicationFactor) {
         try {
             Path localPath = new Path(localFilePath);
             Path hdfsPath = new Path(hdfsFilePath);
@@ -96,7 +124,11 @@ public class HDFSUtil {
             
             // 上传文件
             fileSystem.copyFromLocalFile(localPath, hdfsPath);
-            logger.info("文件上传成功: {} -> {}", localFilePath, hdfsFilePath);
+            
+            // 设置副本数
+            fileSystem.setReplication(hdfsPath, replicationFactor);
+            
+            logger.info("文件上传成功: {} -> {}, 副本数: {}", localFilePath, hdfsFilePath, replicationFactor);
             return true;
         } catch (Exception e) {
             logger.error("文件上传异常: {} -> {}", localFilePath, hdfsFilePath, e);
@@ -230,6 +262,18 @@ public class HDFSUtil {
      * @return 写入成功返回true，否则返回false
      */
     public boolean writeFile(String hdfsFilePath, String content) {
+        return writeFile(hdfsFilePath, content, this.replicationFactor);
+    }
+    
+    /**
+     * 写入内容到HDFS文件并指定副本数
+     * 
+     * @param hdfsFilePath HDFS文件路径
+     * @param content 文件内容
+     * @param replicationFactor 副本数
+     * @return 写入成功返回true，否则返回false
+     */
+    public boolean writeFile(String hdfsFilePath, String content, short replicationFactor) {
         FSDataOutputStream outputStream = null;
         try {
             Path path = new Path(hdfsFilePath);
@@ -239,11 +283,12 @@ public class HDFSUtil {
                 fileSystem.delete(path, false);
             }
             
-            outputStream = fileSystem.create(path);
+            // 创建文件时指定副本数
+            outputStream = fileSystem.create(path, true, 4096, replicationFactor, 134217728L);
             outputStream.write(content.getBytes("UTF-8"));
             outputStream.flush();
             
-            logger.info("文件写入成功: {} (大小: {} 字节)", hdfsFilePath, content.length());
+            logger.info("文件写入成功: {} (大小: {} 字节, 副本数: {})", hdfsFilePath, content.length(), replicationFactor);
             return true;
         } catch (Exception e) {
             logger.error("文件写入异常: {}", hdfsFilePath, e);
@@ -276,6 +321,120 @@ public class HDFSUtil {
             logger.error("获取文件信息异常: {}", hdfsFilePath, e);
             return null;
         }
+    }
+    
+    /**
+     * 设置副本数
+     * 
+     * @param replicationFactor 副本数
+     */
+    public void setReplicationFactor(short replicationFactor) {
+        this.replicationFactor = replicationFactor;
+        this.configuration.setInt("dfs.replication", replicationFactor);
+        logger.info("副本数已设置为: {}", replicationFactor);
+    }
+    
+    /**
+     * 获取当前设置的副本数
+     * 
+     * @return 当前副本数
+     */
+    public short getReplicationFactor() {
+        return this.replicationFactor;
+    }
+    
+    /**
+     * 设置指定文件的副本数
+     * 
+     * @param hdfsFilePath HDFS文件路径
+     * @param replicationFactor 副本数
+     * @return 设置成功返回true，否则返回false
+     */
+    public boolean setFileReplication(String hdfsFilePath, short replicationFactor) {
+        try {
+            Path path = new Path(hdfsFilePath);
+            
+            if (!fileSystem.exists(path)) {
+                logger.error("文件不存在: {}", hdfsFilePath);
+                return false;
+            }
+            
+            boolean result = fileSystem.setReplication(path, replicationFactor);
+            if (result) {
+                logger.info("文件副本数设置成功: {} -> {}", hdfsFilePath, replicationFactor);
+            } else {
+                logger.error("文件副本数设置失败: {}", hdfsFilePath);
+            }
+            return result;
+        } catch (Exception e) {
+            logger.error("设置文件副本数异常: {}", hdfsFilePath, e);
+            return false;
+        }
+    }
+    
+    /**
+     * 获取指定文件的副本数
+     * 
+     * @param hdfsFilePath HDFS文件路径
+     * @return 文件的副本数，如果文件不存在或出错返回-1
+     */
+    public short getFileReplication(String hdfsFilePath) {
+        try {
+            Path path = new Path(hdfsFilePath);
+            
+            if (!fileSystem.exists(path)) {
+                logger.error("文件不存在: {}", hdfsFilePath);
+                return -1;
+            }
+            
+            FileStatus status = fileSystem.getFileStatus(path);
+            short replication = status.getReplication();
+            logger.info("文件 {} 的副本数为: {}", hdfsFilePath, replication);
+            return replication;
+        } catch (Exception e) {
+            logger.error("获取文件副本数异常: {}", hdfsFilePath, e);
+            return -1;
+        }
+    }
+    
+    /**
+     * 批量设置目录下所有文件的副本数
+     * 
+     * @param dirPath 目录路径
+     * @param replicationFactor 副本数
+     * @param recursive 是否递归处理子目录
+     * @return 设置成功的文件数量
+     */
+    public int setBatchReplication(String dirPath, short replicationFactor, boolean recursive) {
+        int successCount = 0;
+        try {
+            Path path = new Path(dirPath);
+            
+            if (!fileSystem.exists(path)) {
+                logger.error("目录不存在: {}", dirPath);
+                return 0;
+            }
+            
+            FileStatus[] fileStatuses = fileSystem.listStatus(path);
+            
+            for (FileStatus status : fileStatuses) {
+                if (status.isFile()) {
+                    // 处理文件
+                    if (fileSystem.setReplication(status.getPath(), replicationFactor)) {
+                        successCount++;
+                        logger.info("设置文件副本数成功: {} -> {}", status.getPath(), replicationFactor);
+                    }
+                } else if (status.isDirectory() && recursive) {
+                    // 递归处理子目录
+                    successCount += setBatchReplication(status.getPath().toString(), replicationFactor, recursive);
+                }
+            }
+            
+            logger.info("批量设置副本数完成，成功处理 {} 个文件", successCount);
+        } catch (Exception e) {
+            logger.error("批量设置副本数异常: {}", dirPath, e);
+        }
+        return successCount;
     }
     
     /**

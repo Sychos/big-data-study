@@ -97,15 +97,34 @@
    mvn dependency:copy-dependencies
    ```
 
-5. **运行快速入门示例**
+5. **运行示例**
    ```bash
+   # 运行快速入门示例
    java -cp "target/classes;target/dependency/*" com.bigdata.hdfs.QuickStart
+   
+   # 运行基础操作示例
+   java -cp "target/classes;target/dependency/*" com.bigdata.hdfs.example.HDFSBasicExample
+   
+   # 运行大文件处理示例
+   java -cp "target/classes;target/dependency/*" com.bigdata.hdfs.example.HDFSLargeFileExample
+   
+   # 运行副本数管理示例
+   java -cp "target/classes;target/dependency/*" com.bigdata.hdfs.example.HDFSReplicationExample
+   
+   # 运行日志分析示例
+   java -cp "target/classes;target/dependency/*" com.bigdata.hdfs.project.LogAnalyzer
    ```
 
 ### 示例功能
 - **QuickStart.java**: HDFS 基本操作演示
 - **HDFSBasicExample.java**: 基础文件操作示例
 - **HDFSLargeFileExample.java**: 大文件处理示例
+- **HDFSReplicationExample.java**: HDFS副本数管理示例
+  - 设置默认副本数
+  - 文件上传时指定副本数
+  - 修改现有文件副本数
+  - 批量设置目录副本数
+  - 查询文件副本数信息
 - **LogAnalyzer.java**: 日志分析项目示例
 
 ## 学习路线规划
@@ -266,9 +285,10 @@ big-data-study/
 │           │   ├── java/com/bigdata/hdfs/
 │           │   │   ├── QuickStart.java          # 快速入门示例
 │           │   │   ├── config/HDFSConfig.java   # HDFS配置类
-│           │   │   ├── example/                 # 示例代码
-│           │   │   │   ├── HDFSBasicExample.java
-│           │   │   │   └── HDFSLargeFileExample.java
+│           │   ├── example/                 # 示例代码
+│           │   │   ├── HDFSBasicExample.java
+│           │   │   ├── HDFSLargeFileExample.java
+│           │   │   └── HDFSReplicationExample.java
 │           │   │   ├── project/LogAnalyzer.java # 日志分析项目
 │           │   │   └── util/HDFSUtil.java       # HDFS工具类
 │           │   └── resources/
@@ -281,7 +301,8 @@ big-data-study/
 │   ├── quick-start/        # 快速入门
 │   │   └── hadoop-quickstart.md                # Hadoop快速入门
 │   └── tutorials/          # 学习教程
-│       └── hdfs-java-api-tutorial.md           # HDFS Java API教程
+│       ├── hdfs-java-api-tutorial.md           # HDFS Java API教程
+│       └── hdfs-architecture-deep-dive.md      # HDFS架构深度解析
 ├── scripts/                # 脚本文件
 │   └── setup-hadoop-win10.ps1                  # Hadoop自动安装脚本
 ├── 生成要求.md              # 项目生成要求
@@ -289,6 +310,13 @@ big-data-study/
 ```
 
 ## 学习资源
+### 项目文档
+- [Hadoop安装教程](docs/installation/hadoop-installation-win10.md)
+- [Hadoop快速入门](docs/quick-start/hadoop-quickstart.md)
+- [HDFS Java API教程](docs/tutorials/hdfs-java-api-tutorial.md)
+- [HDFS架构深度解析](docs/tutorials/hdfs-architecture-deep-dive.md) ⭐ **推荐阅读**
+- [HDFS副本数管理指南](docs/tutorials/hdfs-replication-guide.md) 🔧 实用工具
+
 ### 官方文档
 - [Hadoop官方文档](https://hadoop.apache.org/docs/)
 - [Spark官方文档](https://spark.apache.org/docs/latest/)
