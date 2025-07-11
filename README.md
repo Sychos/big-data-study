@@ -53,12 +53,24 @@
    - 文件上传、下载、删除等基本操作
    - 目录创建、列表、删除等目录操作
    - 大文件处理示例
+   - HDFS副本数管理功能
    - 日志分析项目示例
    - 完整的单元测试
 
-3. **文档和教程**
+3. **YARN MapReduce 示例项目**
+   - WordCount MapReduce完整实现
+   - YARN资源监控工具
+   - YARN应用程序提交工具
+   - YARN配置管理工具
+   - 企业级日志记录和错误处理
+   - 性能优化和监控功能
+
+4. **文档和教程**
    - Hadoop 在 Windows 10 上的详细安装教程
    - HDFS Java API 使用教程
+   - HDFS架构深度解析文档
+   - HDFS副本数管理指南
+   - YARN架构指南和资源管理详解
    - 快速入门指南
    - 自动化安装脚本
 
@@ -98,6 +110,8 @@
    ```
 
 5. **运行示例**
+   
+   #### HDFS Java API 示例
    ```bash
    # 运行快速入门示例
    java -cp "target/classes;target/dependency/*" com.bigdata.hdfs.QuickStart
@@ -114,8 +128,33 @@
    # 运行日志分析示例
    java -cp "target/classes;target/dependency/*" com.bigdata.hdfs.project.LogAnalyzer
    ```
+   
+   #### YARN MapReduce 示例
+   ```bash
+   # 编译YARN MapReduce项目
+   cd code/yarn-mapreduce-demo
+   mvn clean package
+   
+   # 准备测试数据
+   hdfs dfs -mkdir -p /input/wordcount
+   echo "hello world hello hadoop hello yarn" > test.txt
+   hdfs dfs -put test.txt /input/wordcount/
+   
+   # 运行WordCount示例
+   hadoop jar target/yarn-mapreduce-demo-1.0.0.jar \
+     com.bigdata.mapreduce.wordcount.WordCountDriver \
+     /input/wordcount /output/wordcount
+   
+   # 查看结果
+   hdfs dfs -cat /output/wordcount/part-r-00000
+   
+   # 运行YARN资源监控
+   mvn exec:java -Dexec.mainClass="com.bigdata.yarn.YarnResourceMonitor"
+   ```
 
 ### 示例功能
+
+#### HDFS Java API 示例
 - **QuickStart.java**: HDFS 基本操作演示
 - **HDFSBasicExample.java**: 基础文件操作示例
 - **HDFSLargeFileExample.java**: 大文件处理示例
@@ -127,9 +166,17 @@
   - 查询文件副本数信息
 - **LogAnalyzer.java**: 日志分析项目示例
 
+#### YARN MapReduce 示例
+- **WordCountMapper.java**: 文本分词和计数映射器
+- **WordCountReducer.java**: 单词计数汇总归约器
+- **WordCountDriver.java**: MapReduce作业配置和提交主程序
+- **YarnResourceMonitor.java**: 集群资源监控和应用状态查询工具
+- **YarnApplicationSubmitter.java**: 编程方式提交应用程序到YARN集群
+- **YarnConfigManager.java**: YARN配置管理和性能优化工具
+
 ## 学习路线规划
 
-### 第一阶段：基础环境搭建 (1-2周)
+### 第一阶段：基础环境搭建 (1-2周) ✅ 已完成
 #### 1.1 台式机环境配置
 - [x] 安装JDK 1.8
 - [x] 配置JAVA_HOME环境变量
@@ -147,22 +194,27 @@
 - [x] 启动HDFS和YARN服务
 
 #### 1.3 数据库环境
-- [ ] 安装PostgreSQL
-- [ ] 创建项目数据库
-- [ ] 配置数据库连接
+- [x] 安装PostgreSQL
+- [x] 创建项目数据库
+- [x] 配置数据库连接
 
-### 第二阶段：Hadoop生态系统学习 (2-3周)
+### 第二阶段：Hadoop生态系统学习 (2-3周) 🔄 进行中
 #### 2.1 HDFS分布式文件系统
 - [x] HDFS架构原理学习
 - [x] HDFS命令行操作
 - [x] Java API操作HDFS
 - [x] 实现文件上传下载功能
+- [x] HDFS副本数管理
+- [x] HDFS架构深度学习
+- [x] 完成HDFS实战项目
 
-#### 2.2 YARN资源管理
-- [ ] YARN架构原理学习
-- [ ] 资源调度机制
-- [ ] 编写MapReduce程序
-- [ ] 提交作业到YARN集群
+#### 2.2 YARN资源管理 ✅ 已完成
+- [x] YARN架构原理学习
+- [x] 资源调度机制
+- [x] 编写MapReduce程序
+- [x] 提交作业到YARN集群
+- [x] YARN监控和管理工具
+- [x] YARN应用程序开发
 
 #### 2.3 MapReduce编程
 - [ ] MapReduce编程模型
@@ -277,24 +329,36 @@ big-data-study/
 ├── .gitignore              # Git忽略文件
 ├── README.md               # 项目说明
 ├── code/                   # 代码目录
-│   └── hdfs-java-demo/     # HDFS Java API 示例项目
+│   ├── hdfs-java-demo/     # HDFS Java API 示例项目
+│   │   ├── README.md       # 项目说明
+│   │   ├── pom.xml         # Maven配置文件
+│   │   └── src/            # 源代码
+│   │       ├── main/
+│   │       │   ├── java/com/bigdata/hdfs/
+│   │       │   │   ├── QuickStart.java          # 快速入门示例
+│   │       │   │   ├── config/HDFSConfig.java   # HDFS配置类
+│   │       │   ├── example/                 # 示例代码
+│   │       │   │   ├── HDFSBasicExample.java
+│   │       │   │   ├── HDFSLargeFileExample.java
+│   │       │   │   └── HDFSReplicationExample.java
+│   │       │   │   ├── project/LogAnalyzer.java # 日志分析项目
+│   │       │   │   └── util/HDFSUtil.java       # HDFS工具类
+│   │       │   └── resources/
+│   │       │       ├── hdfs-config.properties   # HDFS配置
+│   │       │       └── log4j.properties         # 日志配置
+│   │       └── test/java/                       # 测试代码
+│   └── yarn-mapreduce-demo/ # YARN MapReduce示例项目
+│       ├── pom.xml         # Maven项目配置
 │       ├── README.md       # 项目说明
-│       ├── pom.xml         # Maven配置文件
-│       └── src/            # 源代码
-│           ├── main/
-│           │   ├── java/com/bigdata/hdfs/
-│           │   │   ├── QuickStart.java          # 快速入门示例
-│           │   │   ├── config/HDFSConfig.java   # HDFS配置类
-│           │   ├── example/                 # 示例代码
-│           │   │   ├── HDFSBasicExample.java
-│           │   │   ├── HDFSLargeFileExample.java
-│           │   │   └── HDFSReplicationExample.java
-│           │   │   ├── project/LogAnalyzer.java # 日志分析项目
-│           │   │   └── util/HDFSUtil.java       # HDFS工具类
-│           │   └── resources/
-│           │       ├── hdfs-config.properties   # HDFS配置
-│           │       └── log4j.properties         # 日志配置
-│           └── test/java/                       # 测试代码
+│       └── src/main/java/  # Java源代码
+│           ├── com/bigdata/mapreduce/wordcount/ # WordCount示例
+│           │   ├── WordCountMapper.java    # Mapper实现
+│           │   ├── WordCountReducer.java   # Reducer实现
+│           │   └── WordCountDriver.java    # Driver主程序
+│           └── com/bigdata/yarn/           # YARN工具类
+│               ├── YarnResourceMonitor.java # 资源监控工具
+│               ├── YarnApplicationSubmitter.java # 应用提交工具
+│               └── YarnConfigManager.java  # 配置管理工具
 ├── docs/                   # 文档目录
 │   ├── installation/       # 安装教程
 │   │   └── hadoop-installation-win10.md        # Hadoop安装教程
@@ -302,7 +366,8 @@ big-data-study/
 │   │   └── hadoop-quickstart.md                # Hadoop快速入门
 │   └── tutorials/          # 学习教程
 │       ├── hdfs-java-api-tutorial.md           # HDFS Java API教程
-│       └── hdfs-architecture-deep-dive.md      # HDFS架构深度解析
+│       ├── hdfs-architecture-deep-dive.md      # HDFS架构深度解析
+│       └── yarn-architecture-guide.md          # YARN架构指南
 ├── scripts/                # 脚本文件
 │   └── setup-hadoop-win10.ps1                  # Hadoop自动安装脚本
 ├── 生成要求.md              # 项目生成要求
@@ -316,6 +381,7 @@ big-data-study/
 - [HDFS Java API教程](docs/tutorials/hdfs-java-api-tutorial.md)
 - [HDFS架构深度解析](docs/tutorials/hdfs-architecture-deep-dive.md) ⭐ **推荐阅读**
 - [HDFS副本数管理指南](docs/tutorials/hdfs-replication-guide.md) 🔧 实用工具
+- [YARN架构指南](docs/yarn-architecture-guide.md) - YARN资源管理架构详解
 
 ### 官方文档
 - [Hadoop官方文档](https://hadoop.apache.org/docs/)
