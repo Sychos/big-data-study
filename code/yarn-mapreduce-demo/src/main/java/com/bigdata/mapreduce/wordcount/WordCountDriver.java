@@ -99,7 +99,7 @@ public class WordCountDriver {
         job.setNumReduceTasks(2);
         
         // 设置作业优先级
-        job.setPriority(JobPriority.NORMAL);
+        job.setPriority(org.apache.hadoop.mapreduce.JobPriority.NORMAL);
         
         // 设置作业队列（如果配置了多队列）
         // job.setQueueName("default");
@@ -210,9 +210,9 @@ public class WordCountDriver {
             
             // 打印文件系统统计
             long hdfsReadBytes = counters.findCounter(
-                org.apache.hadoop.mapreduce.FileSystemCounter.HDFS_BYTES_READ).getValue();
+                "org.apache.hadoop.mapreduce.FileSystemCounter", "HDFS_BYTES_READ").getValue();
             long hdfsWriteBytes = counters.findCounter(
-                org.apache.hadoop.mapreduce.FileSystemCounter.HDFS_BYTES_WRITTEN).getValue();
+                "org.apache.hadoop.mapreduce.FileSystemCounter", "HDFS_BYTES_WRITTEN").getValue();
             
             logger.info("HDFS Bytes Read: {} MB", hdfsReadBytes / (1024 * 1024));
             logger.info("HDFS Bytes Written: {} MB", hdfsWriteBytes / (1024 * 1024));
@@ -221,14 +221,5 @@ public class WordCountDriver {
         logger.info("=== End of Statistics ===");
     }
     
-    /**
-     * 作业优先级枚举
-     */
-    public enum JobPriority {
-        VERY_HIGH,
-        HIGH,
-        NORMAL,
-        LOW,
-        VERY_LOW
-    }
+
 }

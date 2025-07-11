@@ -150,10 +150,18 @@ public class YarnResourceMonitor {
             logger.info("  Tracking URL: {}", app.getTrackingUrl());
             
             // 资源使用情况
-            Resource allocatedResource = app.getAllocatedResource();
-            if (allocatedResource != null) {
-                logger.info("  Allocated Memory: {} MB", allocatedResource.getMemorySize());
-                logger.info("  Allocated vCores: {}", allocatedResource.getVirtualCores());
+            ApplicationResourceUsageReport resourceUsage = app.getApplicationResourceUsageReport();
+            if (resourceUsage != null) {
+                Resource usedResources = resourceUsage.getUsedResources();
+                if (usedResources != null) {
+                    logger.info("  Used Memory: {} MB", usedResources.getMemorySize());
+                    logger.info("  Used vCores: {}", usedResources.getVirtualCores());
+                }
+                Resource reservedResources = resourceUsage.getReservedResources();
+                if (reservedResources != null) {
+                    logger.info("  Reserved Memory: {} MB", reservedResources.getMemorySize());
+                    logger.info("  Reserved vCores: {}", reservedResources.getVirtualCores());
+                }
             }
             
             logger.info("  ---");

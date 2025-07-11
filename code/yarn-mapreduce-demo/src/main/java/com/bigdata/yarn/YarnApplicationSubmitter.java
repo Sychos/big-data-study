@@ -105,7 +105,7 @@ public class YarnApplicationSubmitter {
         
         // 创建应用程序
         YarnClientApplication app = yarnClient.createApplication();
-        GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
+        org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
         ApplicationId appId = appResponse.getApplicationId();
         
         logger.info("Application ID: {}", appId);

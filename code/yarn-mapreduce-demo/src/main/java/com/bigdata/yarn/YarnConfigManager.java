@@ -81,7 +81,7 @@ public class YarnConfigManager {
         
         // 配置ZooKeeper
         conf.set(YarnConfiguration.RM_ZK_ADDRESS, zkQuorum);
-        conf.set(YarnConfiguration.RM_HA_AUTO_FAILOVER_ENABLED, "true");
+        conf.set("yarn.resourcemanager.ha.automatic-failover.enabled", "true");
         
         logger.info("ResourceManager HA configured with cluster ID: {}", clusterId);
     }
@@ -94,9 +94,9 @@ public class YarnConfigManager {
      * @param diskSpaceGb 磁盘空间（GB）
      */
     public void configureNodeManagerResources(int memoryMb, int vcores, int diskSpaceGb) {
-        conf.setInt(YarnConfiguration.NM_RESOURCE_MEMORY_MB, memoryMb);
-        conf.setInt(YarnConfiguration.NM_RESOURCE_CPU_VCORES, vcores);
-        conf.setLong(YarnConfiguration.NM_DISK_HEALTH_CHECK_MAX_DISK_UTILIZATION_PER_DISK_PERCENTAGE, 90);
+        conf.setInt("yarn.nodemanager.resource.memory-mb", memoryMb);
+        conf.setInt("yarn.nodemanager.resource.cpu-vcores", vcores);
+        conf.setFloat("yarn.nodemanager.disk-health-checker.max-disk-utilization-per-disk-percentage", 90.0f);
         
         // 设置本地目录
         conf.set(YarnConfiguration.NM_LOCAL_DIRS, "/tmp/yarn/local");
@@ -116,8 +116,8 @@ public class YarnConfigManager {
         
         // 如果使用LinuxContainerExecutor，设置相关配置
         if ("org.apache.hadoop.yarn.server.nodemanager.LinuxContainerExecutor".equals(executorClass)) {
-            conf.set(YarnConfiguration.NM_LINUX_CONTAINER_EXECUTOR_GROUP, "yarn");
-            conf.set(YarnConfiguration.NM_LINUX_CONTAINER_EXECUTOR_PATH, 
+            conf.set("yarn.nodemanager.linux-container-executor.group", "yarn");
+            conf.set("yarn.nodemanager.linux-container-executor.path", 
                     "/usr/local/hadoop/bin/container-executor");
         }
         
@@ -300,8 +300,8 @@ public class YarnConfigManager {
         String[] requiredConfigs = {
             YarnConfiguration.RM_HOSTNAME,
             YarnConfiguration.RM_ADDRESS,
-            YarnConfiguration.NM_RESOURCE_MEMORY_MB,
-            YarnConfiguration.NM_RESOURCE_CPU_VCORES
+            "yarn.nodemanager.resource.memory-mb",
+            "yarn.nodemanager.resource.cpu-vcores"
         };
         
         for (String config : requiredConfigs) {
@@ -312,8 +312,8 @@ public class YarnConfigManager {
         }
         
         // 检查资源配置的合理性
-        int nmMemory = conf.getInt(YarnConfiguration.NM_RESOURCE_MEMORY_MB, 0);
-        int nmCores = conf.getInt(YarnConfiguration.NM_RESOURCE_CPU_VCORES, 0);
+        int nmMemory = conf.getInt("yarn.nodemanager.resource.memory-mb", 0);
+        int nmCores = conf.getInt("yarn.nodemanager.resource.cpu-vcores", 0);
         
         if (nmMemory < 1024) {
             logger.warn("NodeManager memory is too low: {} MB", nmMemory);
@@ -357,9 +357,9 @@ public class YarnConfigManager {
         logger.info("ResourceManager: {}", conf.get(YarnConfiguration.RM_HOSTNAME, "Not configured"));
         logger.info("Scheduler: {}", conf.get(YarnConfiguration.RM_SCHEDULER, "Default"));
         logger.info("NodeManager Memory: {} MB", 
-                   conf.getInt(YarnConfiguration.NM_RESOURCE_MEMORY_MB, 0));
+                   conf.getInt("yarn.nodemanager.resource.memory-mb", 0));
         logger.info("NodeManager vCores: {}", 
-                   conf.getInt(YarnConfiguration.NM_RESOURCE_CPU_VCORES, 0));
+                   conf.getInt("yarn.nodemanager.resource.cpu-vcores", 0));
         logger.info("Log Aggregation: {}", 
                    conf.getBoolean(YarnConfiguration.LOG_AGGREGATION_ENABLED, false) ? "Enabled" : "Disabled");
         logger.info("RM HA: {}", 
