@@ -44,6 +44,20 @@
             <version>${hadoop.version}</version>
         </dependency>
 
+        <!-- Hadoop MapReduce Client App (包含MRAppMaster) -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-app</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
+        <!-- Hadoop MapReduce Client Job Client -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+
         <!-- Hadoop YARN Client -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>

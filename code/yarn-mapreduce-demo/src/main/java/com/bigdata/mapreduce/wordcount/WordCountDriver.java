@@ -1,5 +1,6 @@
 package com.bigdata.mapreduce.wordcount;
 
+import com.bigdata.config.HadoopConfigManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -93,7 +94,16 @@ public class WordCountDriver {
         
         // 设置输入输出路径
         FileInputFormat.addInputPath(job, new Path(inputPath));
-        FileOutputFormat.setOutputPath(job, new Path(outputPath));
+        
+        // 检查并删除已存在的输出目录
+        Path outputDir = new Path(outputPath);
+        org.apache.hadoop.fs.FileSystem fs = org.apache.hadoop.fs.FileSystem.get(conf);
+        if (fs.exists(outputDir)) {
+            logger.info("Output directory {} already exists, deleting it...", outputPath);
+            fs.delete(outputDir, true);
+        }
+        
+        FileOutputFormat.setOutputPath(job, outputDir);
         
         // 设置Reduce任务数量
         job.setNumReduceTasks(2);
@@ -110,15 +120,28 @@ public class WordCountDriver {
         // 提交作业并等待完成
         logger.info("Submitting WordCount job to YARN cluster...");
         
-        long startTime = System.currentTimeMillis();
         boolean success = job.waitForCompletion(true);
-        long endTime = System.currentTimeMillis();
         
         if (success) {
-            logger.info("WordCount job completed successfully in {} ms", (endTime - startTime));
+            logger.info("WordCount job completed successfully!");
+            logger.info("Job ID: " + job.getJobID());
+            logger.info("Job tracking URL: " + job.getTrackingURL());
+            logger.info("You can view detailed job info at: http://10.132.144.24:8088/cluster/app/" + job.getJobID().toString().replace("job_", "application_"));
+            
+            // 打印作业统计信息
             printJobStatistics(job);
+            
+            // 显示输出结果位置
+            logger.info("\n=== Output Results ===");
+            logger.info("Results are saved to: {}", outputPath);
+            logger.info("To view results, use one of the following methods:");
+            logger.info("1. HDFS Web UI: http://10.132.144.24:9870/explorer.html#{}", outputPath);
+            logger.info("2. Command line: hdfs dfs -cat {}/*", outputPath);
+            logger.info("3. Command line: hdfs dfs -ls {}", outputPath);
+            
         } else {
-            logger.error("WordCount job failed");
+            logger.error("WordCount job failed!");
+            logger.error("Check the job logs for more details at: http://10.132.144.24:8088/cluster/app/" + job.getJobID().toString().replace("job_", "application_"));
         }
         
         return success;
@@ -126,39 +149,22 @@ public class WordCountDriver {
     
     /**
      * 配置YARN相关参数
+     * 使用配置管理器从配置文件中读取配置
      * 
      * @param conf 配置对象
      */
     private static void configureYarn(Configuration conf) {
+        logger.info("开始配置YARN环境...");
         
-        // 设置ResourceManager地址（如果需要）
-        // conf.set("yarn.resourcemanager.hostname", "10.132.144.24");
-        // conf.set("yarn.resourcemanager.address", "10.132.144.24:8032");
+        // 使用配置管理器配置Hadoop
+        HadoopConfigManager.configureHadoop(conf);
         
-        // 设置MapReduce框架为YARN
-        conf.set("mapreduce.framework.name", "yarn");
+        // 在开发环境下打印配置信息
+        if (HadoopConfigManager.isDevelopmentEnvironment()) {
+            HadoopConfigManager.printConfiguration();
+        }
         
-        // 设置应用程序类型
-        conf.set("yarn.app.mapreduce.am.env", "HADOOP_MAPRED_HOME=$HADOOP_HOME");
-        conf.set("mapreduce.map.env", "HADOOP_MAPRED_HOME=$HADOOP_HOME");
-        conf.set("mapreduce.reduce.env", "HADOOP_MAPRED_HOME=$HADOOP_HOME");
-        
-        // 设置内存配置
-        conf.setInt("mapreduce.map.memory.mb", 1024);
-        conf.setInt("mapreduce.reduce.memory.mb", 2048);
-        
-        // 设置JVM参数
-        conf.set("mapreduce.map.java.opts", "-Xmx768m");
-        conf.set("mapreduce.reduce.java.opts", "-Xmx1536m");
-        
-        // 设置ApplicationMaster内存
-        conf.setInt("yarn.app.mapreduce.am.resource.mb", 1024);
-        
-        // 启用推测执行
-        conf.setBoolean("mapreduce.map.speculative", true);
-        conf.setBoolean("mapreduce.reduce.speculative", true);
-        
-        logger.info("YARN configuration completed");
+        logger.info("YARN配置完成");
     }
     
     /**

@@ -1,42 +1,55 @@
-# YARN MapReduce 示例项目
+# Yarn MapReduce Demo
 
-这是一个全面的YARN资源管理和MapReduce编程示例项目，展示了如何在YARN集群上开发、部署和监控MapReduce应用程序。
+这是一个基于YARN的MapReduce WordCount示例项目，展示了如何将MapReduce作业提交到远程YARN集群。
 
-## 项目概述
+## 项目特性
 
-本项目包含以下核心功能：
-
-### 1. MapReduce 示例
-- **WordCount**: 经典的单词计数MapReduce程序
-- 完整的Mapper、Reducer和Driver实现
-- 支持自定义配置和性能优化
-
-### 2. YARN 资源管理工具
-- **YarnResourceMonitor**: YARN集群资源监控工具
-- **YarnApplicationSubmitter**: 应用程序提交和管理工具
-- **YarnConfigManager**: YARN配置管理和优化工具
-
-### 3. 企业级特性
-- 完整的日志记录和错误处理
-- 性能监控和统计信息
-- 配置管理和验证
-- 高可用性支持
+- **配置外部化**: 所有Hadoop配置都存储在 `hadoop.properties` 文件中
+- **配置管理器**: 使用 `HadoopConfigManager` 统一管理配置
+- **环境感知**: 支持开发和生产环境的不同配置
+- **日志优化**: 结构化日志记录和配置信息打印
+- **连接远程HDFS集群**: 支持连接到远程Hadoop集群
+- **自动处理输出目录冲突**: 智能处理已存在的输出目录
 
 ## 项目结构
 
 ```
-yarn-mapreduce-demo/
-├── pom.xml                                    # Maven项目配置
-├── README.md                                  # 项目说明文档
-└── src/main/java/
-    ├── com/bigdata/mapreduce/wordcount/       # WordCount MapReduce示例
-    │   ├── WordCountMapper.java               # Mapper实现
-    │   ├── WordCountReducer.java              # Reducer实现
-    │   └── WordCountDriver.java               # Driver主程序
-    └── com/bigdata/yarn/                      # YARN工具类
-        ├── YarnResourceMonitor.java           # 资源监控工具
-        ├── YarnApplicationSubmitter.java      # 应用提交工具
-        └── YarnConfigManager.java             # 配置管理工具
+src/main/java/
+├── com/bigdata/config/
+│   └── HadoopConfigManager.java    # 配置管理器
+└── com/bigdata/mapreduce/wordcount/
+    ├── WordCountDriver.java         # 主驱动程序
+    ├── WordCountMapper.java         # Mapper实现
+    └── WordCountReducer.java        # Reducer实现
+
+src/main/resources/
+└── hadoop.properties                # Hadoop配置文件
+```
+
+## 配置文件说明
+
+### hadoop.properties
+
+该文件包含所有Hadoop集群的配置参数，支持以下配置：
+
+```properties
+# HDFS配置
+fs.defaultFS=hdfs://10.132.144.24:9000
+
+# YARN ResourceManager配置
+yarn.resourcemanager.hostname=10.132.144.24
+yarn.resourcemanager.address=10.132.144.24:8032
+
+# JobHistoryServer配置
+mapreduce.jobhistory.address=10.132.144.24:10020
+mapreduce.jobhistory.webapp.address=10.132.144.24:19888
+
+# MapReduce框架配置
+mapreduce.framework.name=yarn
+
+# 用户身份和环境配置
+hadoop.user.name=UM
+hadoop.environment=development
 ```
 
 ## 环境要求
@@ -83,12 +96,56 @@ yarn jar target/yarn-mapreduce-demo-1.0.0.jar \
   /input/wordcount /output/wordcount
 ```
 
-### 4. 查看结果
+### 4. 查看作业结果
 
-```bash
-# 查看输出结果
-hdfs dfs -cat /output/wordcount/part-r-00000
+作业完成后，程序会自动显示统计信息和结果查看方法：
+
+#### 4.1 控制台输出统计信息
+
 ```
+=== Job Statistics ===
+Job ID: job_1234567890123_0001
+Map Input Records: 1000
+Map Output Records: 5000
+Reduce Input Records: 5000
+Reduce Output Records: 500
+HDFS Bytes Read: 10 MB
+HDFS Bytes Written: 2 MB
+
+=== Output Results ===
+Results are saved to: /output/wordcount
+```
+
+#### 4.2 查看结果的方法
+
+**方法1：HDFS Web UI（推荐）**
+```
+访问：http://10.132.144.24:9870/explorer.html#/output/wordcount
+```
+
+**方法2：命令行查看**
+```bash
+# 查看所有结果文件
+hdfs dfs -cat /output/wordcount/*
+
+# 查看目录结构
+hdfs dfs -ls /output/wordcount
+```
+
+**方法3：下载到本地**
+```bash
+# 下载结果到本地
+hdfs dfs -get /output/wordcount ./local_results
+```
+
+#### 4.3 YARN Web UI 监控
+
+访问 YARN Web UI 查看作业详情：
+```
+http://10.132.144.24:8088
+```
+
+> 📖 **详细的结果查看指南**：请参考 [MapReduce 作业结果查看指南](../../docs/tutorials/mapreduce-results-guide.md)
 
 ## 详细功能说明
 

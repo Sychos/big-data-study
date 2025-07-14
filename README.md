@@ -152,6 +152,57 @@
    mvn exec:java -Dexec.mainClass="com.bigdata.yarn.YarnResourceMonitor"
    ```
 
+### 查看MapReduce作业结果
+
+#### 方法1：使用结果查看脚本（推荐）
+
+**Windows用户：**
+```powershell
+# 进入脚本目录
+cd scripts
+
+# 查看完整结果
+.\view-mapreduce-results.ps1 /output/wordcount
+
+# 仅查看文件列表
+.\view-mapreduce-results.ps1 /output/wordcount -List
+
+# 下载结果到本地
+.\view-mapreduce-results.ps1 /output/wordcount -Download
+```
+
+**Linux/Mac用户：**
+```bash
+# 进入脚本目录
+cd scripts
+
+# 添加执行权限
+chmod +x view-mapreduce-results.sh
+
+# 查看完整结果
+./view-mapreduce-results.sh /output/wordcount
+
+# 仅查看文件列表
+./view-mapreduce-results.sh /output/wordcount -l
+```
+
+#### 方法2：手动查看
+
+```bash
+# 查看结果文件
+hdfs dfs -cat /output/wordcount/*
+
+# 查看目录结构
+hdfs dfs -ls /output/wordcount
+```
+
+#### 方法3：Web UI查看
+
+- **HDFS Web UI**: http://10.132.144.24:9870/explorer.html#/output/wordcount
+- **YARN Web UI**: http://10.132.144.24:8088
+
+> 📖 **详细指南**: 查看 [MapReduce 作业结果查看指南](docs/tutorials/mapreduce-results-guide.md) 了解更多查看和分析方法
+
 ### 示例功能
 
 #### HDFS Java API 示例
@@ -367,9 +418,12 @@ big-data-study/
 │   └── tutorials/          # 学习教程
 │       ├── hdfs-java-api-tutorial.md           # HDFS Java API教程
 │       ├── hdfs-architecture-deep-dive.md      # HDFS架构深度解析
-│       └── yarn-architecture-guide.md          # YARN架构指南
+│       ├── yarn-architecture-guide.md          # YARN架构指南
+│       └── mapreduce-results-guide.md          # MapReduce结果查看指南
 ├── scripts/                # 脚本文件
-│   └── setup-hadoop-win10.ps1                  # Hadoop自动安装脚本
+│   ├── setup-hadoop-win10.ps1                  # Hadoop自动安装脚本
+│   ├── view-mapreduce-results.sh               # Linux/Mac结果查看脚本
+│   └── view-mapreduce-results.ps1              # Windows结果查看脚本
 ├── 生成要求.md              # 项目生成要求
 └── 项目目标.md              # 项目目标说明
 ```

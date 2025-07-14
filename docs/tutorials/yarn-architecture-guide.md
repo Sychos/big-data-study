@@ -406,7 +406,18 @@ ContainerRequest containerRequest = new ContainerRequest(
 
 ## YARN工作流程
 
+### YARN工作流程概述
+
+YARN（Yet Another Resource Negotiator）的工作流程可以分为四个主要阶段：
+
+1. **应用提交阶段**: 客户端提交应用到ResourceManager
+2. **资源协商阶段**: ApplicationMaster与ResourceManager协商资源
+3. **任务执行阶段**: 在分配的容器中执行具体任务
+4. **应用完成阶段**: 清理资源并返回结果
+
 ### YARN完整工作流程图
+
+#### 时序图表示
 
 ```mermaid
 sequenceDiagram
@@ -417,31 +428,151 @@ sequenceDiagram
     participant AM as ApplicationMaster
     
     Note over Client,AM: 应用提交阶段
-    Client->>RM: 1. 提交应用(ApplicationSubmissionContext)
-    RM->>RM: 2. 验证应用和用户权限
-    RM->>RM: 3. 分配ApplicationId
-    RM->>NM1: 4. 选择NodeManager启动AM
-    NM1->>AM: 5. 启动ApplicationMaster容器
-    AM->>RM: 6. AM注册到ResourceManager
+    Client->>RM: 1. 提交应用(ApplicationSubmissionContext)<br/>📝 WordCountDriver.main() → Job.getInstance()
+    RM->>RM: 2. 验证权限和资源<br/>📝 HadoopConfigManager.configureHadoop()
+    RM->>Client: 3. 返回ApplicationId<br/>📝 job.getJobID()
+    RM->>NM1: 4. 启动ApplicationMaster<br/>📝 mapreduce.framework.name=yarn
+    NM1->>AM: 5. 创建AM容器<br/>📝 job.setJarByClass(WordCountDriver.class)
+    AM->>RM: 6. 注册ApplicationMaster<br/>📝 job.submit() 内部触发
     
     Note over Client,AM: 资源协商阶段
-    AM->>RM: 7. 请求容器资源
-    RM->>RM: 8. 调度器分配资源
-    RM->>AM: 9. 返回容器分配信息
+    AM->>RM: 7. 请求容器资源<br/>📝 job.setMapperClass() + setReducerClass()
+    RM->>RM: 8. 调度器分配资源<br/>📝 job.setPriority() + setNumReduceTasks()
+    RM->>AM: 9. 返回分配的容器<br/>📝 progressmonitor.pollinterval 配置
     
     Note over Client,AM: 任务执行阶段
-    AM->>NM1: 10. 启动容器1
-    AM->>NM2: 11. 启动容器2
-    NM1->>NM1: 12. 执行任务1
-    NM2->>NM2: 13. 执行任务2
-    NM1->>AM: 14. 报告任务1状态
-    NM2->>AM: 15. 报告任务2状态
+    AM->>NM1: 10. 启动容器1<br/>📝 FileInputFormat.addInputPath()
+    AM->>NM2: 11. 启动容器2<br/>📝 FileOutputFormat.setOutputPath()
+    NM1->>AM: 12. 容器1状态报告<br/>📝 WordCountMapper 执行
+    NM2->>AM: 13. 容器2状态报告<br/>📝 WordCountReducer 执行
+    AM->>RM: 14. 应用进度报告<br/>📝 job.getTrackingURL()
+    RM->>Client: 15. 状态更新<br/>📝 监控URL输出
     
     Note over Client,AM: 应用完成阶段
-    AM->>RM: 16. 报告应用完成
-    RM->>NM1: 17. 清理AM容器
-    RM->>Client: 18. 返回应用结果
+    AM->>RM: 16. 报告应用完成<br/>📝 printJobStatistics() 可选
+    RM->>NM1: 17. 清理AM容器<br/>📝 fs.delete(outputDir) 清理
+    RM->>Client: 18. 返回应用结果<br/>📝 System.exit(success ? 0 : 1)
 ```
+
+#### 流程步骤详解（结合代码实现）
+
+**阶段1: 应用提交**
+1. **Client提交应用**: 客户端创建ApplicationSubmissionContext，包含应用信息、资源需求等
+   ```java
+   // WordCountDriver.java - main方法
+   Configuration conf = new Configuration();
+   String[] otherArgs = new GenericOptionsParser(conf, args).getRemainingArgs();
+   boolean success = runWordCountJob(conf, inputPath, outputPath);
+   ```
+
+2. **权限验证**: ResourceManager验证用户权限和资源配额
+   ```java
+   // HadoopConfigManager.java - configureHadoop方法
+   String hadoopUser = getProperty("hadoop.user.name", "hadoop");
+   System.setProperty("HADOOP_USER_NAME", hadoopUser);
+   ```
+
+3. **分配ID**: 为应用分配唯一的ApplicationId
+   ```java
+   // WordCountDriver.java - runWordCountJob方法
+   Job job = Job.getInstance(conf, "word count");
+   job.setJarByClass(WordCountDriver.class);
+   ```
+
+4. **选择节点**: ResourceManager选择合适的NodeManager启动ApplicationMaster
+   ```java
+   // HadoopConfigManager.java - YARN配置
+   String rmHostname = getProperty("yarn.resourcemanager.hostname");
+   conf.set("yarn.resourcemanager.hostname", rmHostname);
+   ```
+
+5. **启动AM**: NodeManager启动ApplicationMaster容器
+   ```java
+   // WordCountDriver.java - MapReduce框架配置
+   String mrFramework = getProperty("mapreduce.framework.name", "yarn");
+   conf.set("mapreduce.framework.name", mrFramework);
+   ```
+
+6. **AM注册**: ApplicationMaster向ResourceManager注册并获取集群信息
+   ```java
+   // WordCountDriver.java - 作业提交
+   job.submit(); // 内部会触发AM注册过程
+   logger.info("Job ID: " + job.getJobID());
+   ```
+
+**阶段2: 资源协商**
+7. **资源请求**: ApplicationMaster根据任务需求向ResourceManager请求容器资源
+   ```java
+   // WordCountDriver.java - 设置Mapper和Reducer
+   job.setMapperClass(WordCountMapper.class);
+   job.setReducerClass(WordCountReducer.class);
+   job.setNumReduceTasks(2); // 设置Reduce任务数量
+   ```
+
+8. **资源调度**: ResourceManager的调度器根据策略分配资源
+   ```java
+   // WordCountDriver.java - 作业优先级和队列配置
+   job.setPriority(org.apache.hadoop.mapreduce.JobPriority.NORMAL);
+   // job.setQueueName("default"); // 可选：设置队列
+   ```
+
+9. **分配响应**: ResourceManager返回分配的容器信息给ApplicationMaster
+   ```java
+   // HadoopConfigManager.java - 监控配置
+   long pollInterval = getLongProperty("mapreduce.client.progressmonitor.pollinterval", 10000);
+   conf.setLong("mapreduce.client.progressmonitor.pollinterval", pollInterval);
+   ```
+
+**阶段3: 任务执行**
+10-11. **启动容器**: ApplicationMaster在分配的NodeManager上启动任务容器
+   ```java
+   // WordCountDriver.java - 输入输出配置
+   FileInputFormat.addInputPath(job, new Path(inputPath));
+   FileOutputFormat.setOutputPath(job, outputDir);
+   job.setInputFormatClass(TextInputFormat.class);
+   job.setOutputFormatClass(TextOutputFormat.class);
+   ```
+
+12-13. **执行任务**: 各个容器中的任务开始执行业务逻辑
+   ```java
+   // WordCountMapper.java 和 WordCountReducer.java
+   // 实际的Map和Reduce逻辑在这些类中实现
+   job.setOutputKeyClass(Text.class);
+   job.setOutputValueClass(IntWritable.class);
+   ```
+
+14-15. **状态报告**: NodeManager定期向ApplicationMaster报告任务执行状态
+   ```java
+   // WordCountDriver.java - 作业跟踪
+   logger.info("Job tracking URL: " + job.getTrackingURL());
+   logger.info("Monitor at: http://10.132.144.24:8088/cluster/app/" + 
+              job.getJobID().toString().replace("job_", "application_"));
+   ```
+
+**阶段4: 应用完成**
+16. **完成报告**: ApplicationMaster向ResourceManager报告应用执行完成
+   ```java
+   // WordCountDriver.java - 作业统计（可选）
+   private static void printJobStatistics(Job job) throws Exception {
+       org.apache.hadoop.mapreduce.Counters counters = job.getCounters();
+       // 获取作业执行统计信息
+   }
+   ```
+
+17. **资源清理**: ResourceManager指示NodeManager清理ApplicationMaster容器
+   ```java
+   // WordCountDriver.java - 输出目录清理
+   org.apache.hadoop.fs.FileSystem fs = org.apache.hadoop.fs.FileSystem.get(conf);
+   if (fs.exists(outputDir)) {
+       fs.delete(outputDir, true); // 清理已存在的输出目录
+   }
+   ```
+
+18. **结果返回**: ResourceManager将最终结果返回给Client
+   ```java
+   // WordCountDriver.java - main方法结束
+   System.exit(success ? 0 : 1); // 返回执行结果
+   ```
 
 ### 1. 应用提交流程图
 
@@ -1071,15 +1202,26 @@ yarn logs -applicationId application_1234567890123_0001 -containerId container_1
     │ FINISHED    │ ← 应用结束
     │             │
     └─────────────┘
-
-状态说明：
-• NEW: 应用刚创建，尚未提交
-• NEW_SAVING: 正在保存应用信息到状态存储
-• SUBMITTED: 应用已提交给ResourceManager
-• ACCEPTED: 应用被调度器接受，等待资源分配
-• RUNNING: ApplicationMaster已启动，应用正在运行
-• FINISHED: 应用执行完成（成功/失败/被杀死）
 ```
+
+#### 应用状态详细说明
+
+| 状态 | 描述 | 触发条件 | 持续时间 |
+|------|------|----------|----------|
+| **NEW** | 应用刚创建，尚未提交 | 客户端创建应用 | 瞬时 |
+| **NEW_SAVING** | 正在保存应用信息到状态存储 | 应用提交开始 | 几秒钟 |
+| **SUBMITTED** | 应用已提交给ResourceManager | 应用信息保存完成 | 取决于队列负载 |
+| **ACCEPTED** | 应用被调度器接受，等待资源分配 | 调度器选中应用 | 取决于资源可用性 |
+| **RUNNING** | ApplicationMaster已启动，应用正在运行 | AM容器启动成功 | 应用执行时间 |
+| **FINISHED** | 应用执行完成（成功/失败/被杀死） | 应用执行结束 | 永久状态 |
+
+#### 状态转换触发事件
+
+- **NEW → NEW_SAVING**: 客户端调用`submitApplication()`
+- **NEW_SAVING → SUBMITTED**: 应用信息成功保存到状态存储
+- **SUBMITTED → ACCEPTED**: 调度器根据策略选中应用
+- **ACCEPTED → RUNNING**: ApplicationMaster容器成功启动
+- **RUNNING → FINISHED**: 应用正常完成、异常终止或被用户杀死
 
 ### 详细生命周期流程图
 
